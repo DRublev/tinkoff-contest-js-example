@@ -64,7 +64,7 @@ const killSwitch = new AbortController();
  */
 let exchangesStatuses = {};
 let watchIntervalId = null;
-let watchOrderIntervalIds = [];
+let watchOrderIntervalIds: Record<string, any> = {};
 
 
 /**
@@ -115,7 +115,7 @@ const start = async () => {
         clearInterval(watchIntervalId);
       }
       await ordersService.cancelAllOrders(accountId);
-      watchOrderIntervalIds.forEach((id) => clearInterval(id));
+      Object.values(watchOrderIntervalIds).forEach((id) => clearInterval(id));
     });
 
     let candlesStream;
@@ -290,6 +290,9 @@ const startTrading = async (share: Share) => {
           if (cancelOrder) {
             logger.info(`Отменяю предыдущую заявку на ${share.ticker}`);
             await ordersService.cancelOrder(accountId, cancelOrder);
+            if (watchOrderIntervalIds[cancelOrder]) {
+              clearInterval(watchOrderIntervalIds[cancelOrder]);
+            }
           }
         } catch (e) {
           logger.error(`Ошибка при закрытии предыдущей заяки ${share.ticker}: ${e.message}`);
@@ -308,7 +311,7 @@ const startTrading = async (share: Share) => {
                 const id = setInterval(async () => {
                   await checkOrder(strategy, placedOrderId, order);
                 }, 1000);
-                watchOrderIntervalIds.push(id);
+                watchOrderIntervalIds[placedOrderId] = id;
               }
 
             } catch (e) {
@@ -338,6 +341,9 @@ const checkOrder = async (
     const trade = await ordersService.checkOrderState(accountId, placedOrderId);
     if (trade) {
       await strategy.onChangeOrder({ ...trade, orderId: requestedOrder.orderId, direction: requestedOrder.direction });
+      if (trade.lotsExecuted === trade.lotsRequested && watchOrderIntervalIds[placedOrderId]) {
+        clearInterval(watchOrderIntervalIds[placedOrderId]);
+      }
     }
   } catch (e) {
     logger.error('Ошибка при отслеживании заявки', e.message, typeof e, Object.entries(e));
