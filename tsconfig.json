@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "target": "es6",
+    "moduleResolution": "node",
+    "outDir": "./built",
+    "baseUrl": "./src",
+    "allowSyntheticDefaultImports": true,
+    "paths": {
+      "@/*": [
+        "./*"
+      ],
+    },
+    "plugins": [
+      {
+        "transform": "@zerollup/ts-transform-paths",
+      }
+    ]
+  },
+  "include": [
+    "./src/**/*"
+  ],
+  "exclude": ["node_modules/**/*"]
+}
